@@ -7,7 +7,7 @@ using Alchemy.Classes;
 
 namespace Afinity
 {
-    public class ConSol
+    public class ConSol: Proteomics.Utilities.IConSol
     {
         /// <summary>
         /// Store the list of online users. Wish I had a ConcurrentList. 
@@ -35,13 +35,18 @@ namespace Afinity
             Console.WriteLine(msg);
         }
 
-        public ConSolUser CreateUserConSol(UserContext context, string name)
+        public ConSolUser GetConSolUser(UserContext context)
+        {
+            return OnlineUsersByContext[context];
+        }
+
+        public ConSolUser CreateUserConSol(UserContext context, string name, Func<string, UserContext, int> sendMessageFunc)
         {
             if (OnlineUsersByName.ContainsKey(name))
                 return OnlineUsersByName[name];
             else
             {
-                ConSolUser user = new ConSolUser(context, name, Logs);
+                ConSolUser user = new ConSolUser(context, name, Logs, sendMessageFunc);
                 OnlineUsersByName.TryAdd(name, user);
                 OnlineUsersByContext.TryAdd(context, user);
                 return user;
@@ -74,23 +79,27 @@ namespace Afinity
         }
     }
 
-    public class ConSolUser
+    public class ConSolUser: Proteomics.Utilities.IConSol
     {
         private Logger Logs;
         public string Name = String.Empty;
         public UserContext Context { get; set; }
+        private Func<string, UserContext, int> SendMessageFunc;
 
-        public ConSolUser(UserContext userContext, string name, Logger log)
+        public ConSolUser(UserContext userContext, string name, Logger log, Func<string, UserContext, int> sendMessage)
         {
             this.Context = userContext;
             this.Name = name;
             this.Logs = log;
+            this.SendMessageFunc = sendMessage;
         }
 
         public void WriteLine(string msg)
         {
             Logs.Add(msg, Name);
-            Context.Send(msg);
+            SendMessageFunc(msg, Context);
+            //Context.Send(msg);
+            
         }
     }
 }
